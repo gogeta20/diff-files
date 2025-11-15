@@ -1,0 +1,34 @@
+# PyCharm / IntelliJ
+.idea/
+*.iml
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Compiled / build artifacts
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# System files
+.DS_Store
+
+# Temporary diff outputs
+diff.md
+
+# Logs
+*.log
+
+# Python dotenv
+*.env
+
+# Example outputs (optional)
+examples/*.generated.yaml

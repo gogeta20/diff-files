@@ -1,0 +1,2390 @@
+openapi: 3.0.0
+info:
+  title: 'HAL DNS'
+  description: 'API Documentation of HAL DNS'
+  version: 0.0.1
+servers:
+  -
+    url: 'http://localhost'
+    description: 'Local environment documentation'
+  -
+    url: 'https://pre-dns-hal.jotelulu.internal'
+    description: 'Pre-production environment'
+  -
+    url: 'https://hal-dns.jotelulu.internal'
+    description: 'Production environment'
+paths:
+  /api/recordMetadata:
+    get:
+      tags:
+        - RecordMetadata
+      summary: 'Get all DNS record metadata'
+      description: 'Retrieve a list of DNS record metadata entries with optional filtering, sorting and pagination'
+      operationId: getAllRecordMetadata
+      parameters:
+        -
+          name: order_by
+          in: query
+          description: 'Field to order by'
+          required: false
+          schema:
+            type: string
+          example: key
+        -
+          name: order
+          in: query
+          description: 'Order direction'
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+          example: asc
+        -
+          name: limit
+          in: query
+          description: 'Number of items per page'
+          required: false
+          schema:
+            type: integer
+            maximum: 1000
+            minimum: 1
+          example: 10
+        -
+          name: offset
+          in: query
+          description: 'Number of items to skip'
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          example: 0
+        -
+          name: filters
+          in: query
+          description: 'Array of filters to apply. Each filter contains field, operator, and value'
+          required: false
+          style: deepObject
+          explode: true
+          schema:
+            type: array
+            items:
+              required:
+                - field
+                - operator
+                - value
+              properties:
+                field:
+                  description: 'Field name to filter by'
+                  type: string
+                  example: name
+                  nullable: false
+                operator:
+                  description: 'Filter operator'
+                  type: string
+                  enum: ['=', '!=', '>', '<', '>=', '<=', CONTAINS, STARTS_WITH, ENDS_WITH, IN, NOT_IN]
+                  example: CONTAINS
+                value:
+                  description: 'Value to filter by'
+                  type: string
+                  example: example
+                  nullable: false
+              type: object
+        -
+          name: page
+          in: query
+          description: 'Page number for pagination'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          example: 2
+      responses:
+        '200':
+          description: 'Record Metadata retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { description: '', type: array, items: { $ref: '#/components/schemas/RecordMetadataResponse' } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false }, records: { properties: { totalItems: { description: 'Total number of items available', type: integer, example: 2, nullable: false }, totalPages: { description: 'Total number of pages available', type: integer, example: 1, nullable: false }, currentPage: { description: 'Current page number', type: integer, example: 1, nullable: false }, perPage: { description: 'Number of items per page', type: integer, example: 20, nullable: false } }, type: object } }, type: object }
+                  links: { properties: { pages: { properties: { first: { description: '', type: string, example: '/api/recordMetadata?limit=10&offset=0', nullable: false }, last: { description: '', type: string, example: '/api/recordMetadata?limit=10&offset=20', nullable: false }, next: { description: '', type: string, example: '/api/recordMetadata?limit=10&offset=10', nullable: true }, prev: { description: '', type: string, example: '', nullable: true } }, type: object } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/resource/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    post:
+      tags:
+        - RecordMetadata
+      summary: 'Create DNS record metadata'
+      description: 'Create a new DNS record metadata entry with key-value data'
+      operationId: createRecordMetadata
+      requestBody:
+        description: 'Record Metadata data'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  properties: { recordId: { description: 'Record UUID that this metadata belongs to', type: string, format: uuid, example: 8e0055a9-d01c-4cfb-850a-28126a5b4228, nullable: false }, key: { description: 'Metadata key identifier', type: string, example: priority, nullable: false }, value: { description: 'Metadata value (can be null)', type: string, example: '10', nullable: true } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '201':
+          description: 'Record Metadata created successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordMetadataResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-08-07T18:48:15Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Record not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Record not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordMetadata, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 9c511701-8c45-4efd-84ac-9aaee6ffae04, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The recordId field is required.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordMetadata, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/resource/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  '/api/recordMetadata/{id}':
+    get:
+      tags:
+        - RecordMetadata
+      summary: 'Get DNS record metadata by ID'
+      description: 'Retrieve a specific DNS record metadata entry by its UUID'
+      operationId: getRecordMetadataById
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Record Metadata UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: 1fa3e552-e648-4ea3-85ae-96345dce8726
+      responses:
+        '200':
+          description: 'Record Metadata retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordMetadataResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Record Metadata not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD_METADATA.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Record Metadata not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordMetadata/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 5295bfb3-00f2-4be2-999e-9c1608fe5843, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/resource/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    delete:
+      tags:
+        - RecordMetadata
+      summary: 'Delete DNS record metadata'
+      description: 'Delete a specific DNS record metadata entry by its UUID'
+      operationId: deleteRecordMetadata
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Record Metadata UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: 0937ba99-d7b1-4e4f-804d-bd482d463733
+      responses:
+        '204':
+          description: 'Record Metadata deleted successfully'
+        '404':
+          description: 'Record Metadata not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD_METADATA.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Record Metadata not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordMetadata/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: a3ffd04d-3908-4a8a-805e-205443325feb, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/resource/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    patch:
+      tags:
+        - RecordMetadata
+      summary: 'Update DNS record metadata'
+      description: 'Update an existing DNS record metadata entry (partial update)'
+      operationId: updateRecordMetadata
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Record Metadata UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: f401b286-e85d-4743-91aa-f551e6080c44
+      requestBody:
+        description: 'Record Metadata data to update (partial)'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  properties: { recordId: { description: 'Record UUID', type: string, format: uuid, example: 7bbc49be-1022-4d92-ac26-75e44372e700, nullable: true }, key: { description: 'Metadata key identifier', type: string, example: priority, nullable: true }, value: { description: 'Metadata value', type: string, example: '20', nullable: true } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '200':
+          description: 'Record Metadata updated successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordMetadataResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 81bc8dc0-37c1-426a-90af-950d9c989c32, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-08-07T19:32:12Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Record Metadata not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD_METADATA.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Record Metadata not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordMetadata/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 3fee7cc9-61db-4374-b607-0f805aaea7dc, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The key field must be a string.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /data/key, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/resource/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  /api/status:
+    get:
+      tags:
+        - 'Health Check'
+      summary: 'Get application health status'
+      description: 'Check the health status of the application and its dependencies'
+      operationId: getHealthStatus
+      responses:
+        '200':
+          description: 'Health status retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/StatusQueryResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/status, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  /api/clusters:
+    get:
+      tags:
+        - Clusters
+      summary: 'Get all clusters'
+      description: 'Retrieve a list of clusters with optional filtering, sorting and pagination'
+      operationId: getAllClusters
+      parameters:
+        -
+          name: order_by
+          in: query
+          description: 'Field to order by'
+          required: false
+          schema:
+            type: string
+          example: name
+        -
+          name: order
+          in: query
+          description: 'Order direction'
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+          example: asc
+        -
+          name: limit
+          in: query
+          description: 'Number of items per page'
+          required: false
+          schema:
+            type: integer
+            maximum: 1000
+            minimum: 1
+          example: 10
+        -
+          name: offset
+          in: query
+          description: 'Number of items to skip'
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          example: 0
+        -
+          name: filters
+          in: query
+          description: 'Array of filters to apply. Each filter contains field, operator, and value'
+          required: false
+          style: deepObject
+          explode: true
+          schema:
+            type: array
+            items:
+              required:
+                - field
+                - operator
+                - value
+              properties:
+                field:
+                  description: 'Field name to filter by'
+                  type: string
+                  example: name
+                  nullable: false
+                operator:
+                  description: 'Filter operator'
+                  type: string
+                  enum: ['=', '!=', '>', '<', '>=', '<=', CONTAINS, STARTS_WITH, ENDS_WITH, IN, NOT_IN]
+                  example: CONTAINS
+                value:
+                  description: 'Value to filter by'
+                  type: string
+                  example: example
+                  nullable: false
+              type: object
+      responses:
+        '200':
+          description: 'Clusters retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { description: '', type: array, items: { $ref: '#/components/schemas/ClusterResponse' } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false }, records: { properties: { totalItems: { description: 'Total number of items available', type: integer, example: 2, nullable: false }, totalPages: { description: 'Total number of pages available', type: integer, example: 1, nullable: false }, currentPage: { description: 'Current page number', type: integer, example: 1, nullable: false }, perPage: { description: 'Number of items per page', type: integer, example: 20, nullable: false } }, type: object } }, type: object }
+                  links: { properties: { pages: { properties: { first: { description: '', type: string, example: '/api/clusters?limit=10&offset=0', nullable: false }, last: { description: '', type: string, example: '/api/clusters?limit=10&offset=20', nullable: false }, next: { description: '', type: string, example: '/api/clusters?limit=10&offset=10', nullable: true }, prev: { description: '', type: string, example: '', nullable: true } }, type: object } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/clusters, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    post:
+      tags:
+        - Clusters
+      summary: 'Create cluster'
+      description: 'Create a new cluster'
+      operationId: createCluster
+      requestBody:
+        description: 'Cluster data'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  required: [name, provider]
+                  properties: { name: { description: 'Cluster name', type: string, example: cluster-01, nullable: false }, provider: { description: 'Cloud provider', type: string, example: aws, nullable: false } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '201':
+          description: 'Cluster created successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/ClusterResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The name field is required.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /data/name, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/clusters, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  '/api/clusters/{id}':
+    get:
+      tags:
+        - Clusters
+      summary: 'Get cluster by ID'
+      description: 'Retrieve a specific cluster by its UUID'
+      operationId: getClusterById
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Cluster UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: 72688c52-195c-42e9-a722-d8d8968f3929
+      responses:
+        '200':
+          description: 'Cluster retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/ClusterResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Cluster not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: CLUSTER.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Cluster not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/clusters/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: d6121696-0dd1-482b-baeb-b0ee9d536801, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/clusters/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    delete:
+      tags:
+        - Clusters
+      summary: 'Delete cluster'
+      description: 'Delete a specific cluster by its UUID'
+      operationId: deleteCluster
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Cluster UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: 5032c886-85ad-4c49-b4b7-1431307d9a9e
+      responses:
+        '204':
+          description: 'Cluster deleted successfully'
+        '404':
+          description: 'Cluster not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: CLUSTER.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Cluster not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/clusters/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 82e43f12-a4c1-4edc-8da6-c4ed44f818e0, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/clusters/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    patch:
+      tags:
+        - Clusters
+      summary: 'Update cluster'
+      description: 'Update an existing cluster (partial update)'
+      operationId: updateCluster
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Cluster UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: faa2f592-5890-40bb-8dcd-bda786af49fc
+      requestBody:
+        description: 'Cluster data'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  properties: { name: { description: 'Cluster name', type: string, example: cluster-01, nullable: false }, provider: { description: 'Cloud provider', type: string, example: aws, nullable: false } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '200':
+          description: 'Cluster updated successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/ClusterResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 81bc8dc0-37c1-426a-90af-950d9c989c32, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T08:32:12Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Cluster not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: CLUSTER.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Cluster not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/clusters/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 469b4c4b-079a-4d92-a712-7324d43db06c, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The name field must be a string.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/clusters/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/clusters/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  /api/zones:
+    get:
+      tags:
+        - Zones
+      summary: 'Get all zones'
+      description: 'Retrieve a list of zones with optional filtering, sorting and pagination'
+      operationId: getAllZones
+      parameters:
+        -
+          name: order_by
+          in: query
+          description: 'Field to order by'
+          required: false
+          schema:
+            type: string
+          example: name
+        -
+          name: order
+          in: query
+          description: 'Order direction'
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+          example: asc
+        -
+          name: limit
+          in: query
+          description: 'Number of items per page'
+          required: false
+          schema:
+            type: integer
+            maximum: 1000
+            minimum: 1
+          example: 10
+        -
+          name: offset
+          in: query
+          description: 'Number of items to skip'
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          example: 0
+        -
+          name: filters
+          in: query
+          description: 'Array of filters to apply. Each filter contains field, operator, and value'
+          required: false
+          style: deepObject
+          explode: true
+          schema:
+            type: array
+            items:
+              required:
+                - field
+                - operator
+                - value
+              properties:
+                field:
+                  description: 'Field name to filter by'
+                  type: string
+                  example: name
+                  nullable: false
+                operator:
+                  description: 'Filter operator'
+                  type: string
+                  enum: ['=', '!=', '>', '<', '>=', '<=', CONTAINS, STARTS_WITH, ENDS_WITH, IN, NOT_IN]
+                  example: CONTAINS
+                value:
+                  description: 'Value to filter by'
+                  type: string
+                  example: example
+                  nullable: false
+              type: object
+        -
+          name: expand
+          in: query
+          description: 'Comma-separated list of related resources to include in the response'
+          required: false
+          schema:
+            type: string
+            example: record.count
+        -
+          name: fqdn
+          in: query
+          description: 'Whether or not to return domains and record contents as FQDN (with trailing dot).'
+          required: false
+          schema:
+            type: boolean
+            nullable: true
+      responses:
+        '200':
+          description: 'Zones retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { description: '', type: array, items: { $ref: '#/components/schemas/ZoneResponse' } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false }, records: { properties: { totalItems: { description: 'Total number of items available', type: integer, example: 2, nullable: false }, totalPages: { description: 'Total number of pages available', type: integer, example: 1, nullable: false }, currentPage: { description: 'Current page number', type: integer, example: 1, nullable: false }, perPage: { description: 'Number of items per page', type: integer, example: 20, nullable: false } }, type: object } }, type: object }
+                  links: { properties: { pages: { properties: { first: { description: '', type: string, example: '/api/zones?limit=10&offset=0', nullable: false }, last: { description: '', type: string, example: '/api/zones?limit=10&offset=20', nullable: false }, next: { description: '', type: string, example: '/api/zones?limit=10&offset=10', nullable: true }, prev: { description: '', type: string, example: '', nullable: true } }, type: object } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    post:
+      tags:
+        - Zones
+      summary: 'Create zone'
+      description: 'Create a new zone'
+      operationId: createZone
+      parameters:
+        -
+          name: fqdn
+          in: query
+          description: 'Whether or not to return domains and record contents as FQDN (with trailing dot).'
+          required: false
+          schema:
+            type: boolean
+            nullable: true
+      requestBody:
+        description: 'Zone data'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  required: [clusterId, name]
+                  properties: { clusterId: { description: 'Cluster uuid', type: string, format: uuid, example: bb989c94-ad15-44dc-ac02-fb8a2472ad7d, nullable: false }, name: { description: 'Zone name', type: string, example: example.com., nullable: false } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '201':
+          description: 'Zone created successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/ZoneResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The name field is required.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  '/api/zones/{id}':
+    get:
+      tags:
+        - Zones
+      summary: 'Get zone by ID'
+      description: 'Retrieve a specific zone by its UUID'
+      operationId: getZoneById
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Zone UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: 5713bf93-a20c-4567-896b-426eddf328f3
+        -
+          name: fqdn
+          in: query
+          description: 'Whether or not to return domains and record contents as FQDN (with trailing dot).'
+          required: false
+          schema:
+            type: boolean
+            nullable: true
+      responses:
+        '200':
+          description: 'Zone retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/ZoneResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Zone not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: ZONE.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Zone not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 95d12efd-164d-48cc-9eb2-d8dbabda294b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    delete:
+      tags:
+        - Zones
+      summary: 'Delete zone'
+      description: 'Delete a specific zone by its UUID'
+      operationId: deleteZone
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Zone UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: 0298e778-caab-40d8-a6fd-73088102517c
+      responses:
+        '204':
+          description: 'Zone deleted successfully'
+        '404':
+          description: 'Zone not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: ZONE.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Zone not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 393e5a95-339c-46ed-981c-8d4f32372928, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    patch:
+      tags:
+        - Zones
+      summary: 'Update zone'
+      description: 'Update an existing zone (partial update)'
+      operationId: updateZone
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Zone UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: 1c81b786-7f21-49da-b114-6f78e64bec3a
+        -
+          name: fqdn
+          in: query
+          description: 'Whether or not to return domains and record contents as FQDN (with trailing dot).'
+          required: false
+          schema:
+            type: boolean
+            nullable: true
+      requestBody:
+        description: 'Zone data to update (partial)'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  properties: { serial: { description: 'Updated Serial given by the DNS server', type: integer, example: 21323213, nullable: false } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '200':
+          description: 'Zone updated successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/ZoneResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 81bc8dc0-37c1-426a-90af-950d9c989c32, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T08:32:12Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Zone not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: ZONE.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Zone not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: af5e2247-e2db-40ff-a49e-abac3530556b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The serial field must be an integer.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  /api/zones/import:
+    post:
+      tags:
+        - Zones
+      summary: 'Import zone'
+      description: 'Imports a zone from Panel'
+      operationId: importZone
+      requestBody:
+        description: 'Zone data'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  required: [clusterId, name, serial]
+                  properties: { clusterId: { description: 'Cluster uuid', type: string, format: uuid, example: 3d46a979-239b-4092-a2a1-ddcaa17d55cd, nullable: false }, name: { description: 'Zone name', type: string, example: example.com., nullable: false }, serial: { description: 'Zone serial', type: integer, example: 2025010123, nullable: false }, removeExisting: { description: 'Remove zone and its records before importing, if it already exists', type: boolean, example: false, nullable: false } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '201':
+          description: 'Zone imported successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/ZoneResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The name field is required.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/import, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/import, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  '/api/zones/{id}/status':
+    get:
+      tags:
+        - Zones
+      description: 'Returns zone status report'
+      operationId: getZoneStatus
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Zone UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: 163548cb-c30c-4fc2-9f9b-bc515b11be07
+      responses:
+        '200':
+          description: 'Status retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/ZoneStatusResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Zone not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: ZONE.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Zone not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/00000000-0000-0000-0000-000000000000/status, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 792edf3e-0f10-4ed4-a7fa-02617847e7e4, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/zones/00000000-0000-0000-0000-000000000000/status, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  '/api/zones/{id}/sync':
+    post:
+      tags:
+        - Zones
+      operationId: post_zone.sync_zone
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        default:
+          description: ''
+  '/api/recordTypes/{id}':
+    get:
+      tags:
+        - RecordType
+      summary: 'Get record type by ID'
+      description: 'Retrieve a specific record type by its UUID'
+      operationId: getRecordTypeById
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'RecordType UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: f9fe40b8-75e2-435d-8da0-b5634ac4d4b7
+      responses:
+        '200':
+          description: 'RecordType retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordTypeResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'RecordType not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD_TYPE.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'RecordType not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordTypes/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: b24b1451-1d98-46f6-bebc-cd70fc8b66cf, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordTypes/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  /api/recordTypes:
+    get:
+      tags:
+        - RecordType
+      summary: 'Get all record types'
+      description: 'Retrieve a list of record types with optional filtering, sorting and pagination'
+      operationId: getAllRecordTypes
+      parameters:
+        -
+          name: order_by
+          in: query
+          description: 'Field to order by'
+          required: false
+          schema:
+            type: string
+          example: name
+        -
+          name: order
+          in: query
+          description: 'Order direction'
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+          example: asc
+        -
+          name: limit
+          in: query
+          description: 'Number of items per page'
+          required: false
+          schema:
+            type: integer
+            maximum: 1000
+            minimum: 1
+          example: 10
+        -
+          name: offset
+          in: query
+          description: 'Number of items to skip'
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          example: 0
+        -
+          name: filters
+          in: query
+          description: 'Array of filters to apply. Each filter contains field, operator, and value'
+          required: false
+          style: deepObject
+          explode: true
+          schema:
+            type: array
+            items:
+              required:
+                - field
+                - operator
+                - value
+              properties:
+                field:
+                  description: 'Field name to filter by'
+                  type: string
+                  example: name
+                  nullable: false
+                operator:
+                  description: 'Filter operator'
+                  type: string
+                  enum: ['=', '!=', '>', '<', '>=', '<=', CONTAINS, STARTS_WITH, ENDS_WITH, IN, NOT_IN]
+                  example: CONTAINS
+                value:
+                  description: 'Value to filter by'
+                  type: string
+                  example: example
+                  nullable: false
+              type: object
+        -
+          name: page
+          in: query
+          description: 'Page number for pagination'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          example: 2
+      responses:
+        '200':
+          description: 'RecordType retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { description: '', type: array, items: { $ref: '#/components/schemas/RecordTypeResponse' } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false }, records: { properties: { totalItems: { description: 'Total number of items available', type: integer, example: 2, nullable: false }, totalPages: { description: 'Total number of pages available', type: integer, example: 1, nullable: false }, currentPage: { description: 'Current page number', type: integer, example: 1, nullable: false }, perPage: { description: 'Number of items per page', type: integer, example: 20, nullable: false } }, type: object } }, type: object }
+                  links: { properties: { pages: { properties: { first: { description: '', type: string, example: '/api/recordTypes?limit=10&offset=0', nullable: false }, last: { description: '', type: string, example: '/api/recordTypes?limit=10&offset=20', nullable: false }, next: { description: '', type: string, example: '/api/recordTypes?limit=10&offset=10', nullable: true }, prev: { description: '', type: string, example: '', nullable: true } }, type: object } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordTypes, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  /api/records:
+    get:
+      tags:
+        - Record
+      summary: 'Get all records for a zone'
+      description: 'Retrieve a list of DNS records with optional filtering, sorting and pagination'
+      operationId: getAllRecords
+      parameters:
+        -
+          name: order_by
+          in: query
+          description: 'Field to order by'
+          required: false
+          schema:
+            type: string
+          example: name
+        -
+          name: order
+          in: query
+          description: 'Order direction'
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+          example: asc
+        -
+          name: limit
+          in: query
+          description: 'Number of items per page'
+          required: false
+          schema:
+            type: integer
+            maximum: 1000
+            minimum: 1
+          example: 10
+        -
+          name: offset
+          in: query
+          description: 'Number of items to skip'
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          example: 0
+        -
+          name: filters
+          in: query
+          description: 'Array of filters to apply. Each filter contains field, operator, and value'
+          required: false
+          style: deepObject
+          explode: true
+          schema:
+            type: array
+            items:
+              required:
+                - field
+                - operator
+                - value
+              properties:
+                field:
+                  description: 'Field name to filter by'
+                  type: string
+                  example: name
+                  nullable: false
+                operator:
+                  description: 'Filter operator'
+                  type: string
+                  enum: ['=', '!=', '>', '<', '>=', '<=', CONTAINS, STARTS_WITH, ENDS_WITH, IN, NOT_IN]
+                  example: CONTAINS
+                value:
+                  description: 'Value to filter by'
+                  type: string
+                  example: example
+                  nullable: false
+              type: object
+        -
+          name: expand
+          in: query
+          description: 'Comma-separated list of related resources to include in the response'
+          required: false
+          schema:
+            type: string
+            example: 'type,metadata,zone'
+        -
+          name: fqdn
+          in: query
+          description: 'Whether or not to return domains and record contents as FQDN (with trailing dot).'
+          required: false
+          schema:
+            type: boolean
+            nullable: true
+        -
+          name: page
+          in: query
+          description: 'Page number for pagination'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          example: 2
+      responses:
+        '200':
+          description: 'Records retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { description: '', type: array, items: { $ref: '#/components/schemas/RecordResponse' } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false }, records: { properties: { totalItems: { description: 'Total number of items available', type: integer, example: 2, nullable: false }, totalPages: { description: 'Total number of pages available', type: integer, example: 1, nullable: false }, currentPage: { description: 'Current page number', type: integer, example: 1, nullable: false }, perPage: { description: 'Number of items per page', type: integer, example: 20, nullable: false } }, type: object } }, type: object }
+                  links: { properties: { pages: { properties: { first: { description: '', type: string, example: '/api/records?limit=10&offset=0', nullable: false }, last: { description: '', type: string, example: '/api/records?limit=10&offset=20', nullable: false }, next: { description: '', type: string, example: '/api/records?limit=10&offset=10', nullable: true }, prev: { description: '', type: string, example: '', nullable: true } }, type: object } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    post:
+      tags:
+        - Record
+      summary: 'Create record'
+      description: 'Create a new record'
+      operationId: createRecord
+      parameters:
+        -
+          name: fqdn
+          in: query
+          description: 'Whether or not to return domains and record contents as FQDN (with trailing dot).'
+          required: false
+          schema:
+            type: boolean
+            nullable: true
+      requestBody:
+        description: 'Record data'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  required: [zoneId, typeId, name, content, ttl]
+                  properties: { zoneId: { description: 'Zone uuid', type: string, format: uuid, example: 0f58fea8-e023-4c4e-b3a8-7620e3668a70, nullable: false }, typeId: { description: 'Record type uuid', type: string, format: uuid, example: 44b6d996-e466-4167-b80f-e963d40515b8, nullable: false }, name: { description: 'Record name', type: string, example: subdomain.example.com., nullable: false }, content: { description: 'Record content', type: string, example: 127.0.0.1, nullable: false }, ttl: { description: 'Record TTL', type: integer, example: 3600, nullable: false }, priority: { description: 'Record priority. Required for MX, SRV and NAPTR types', type: integer, example: 10, nullable: true } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '201':
+          description: 'Record created successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The name field is required.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  '/api/records/{id}':
+    get:
+      tags:
+        - Record
+      summary: 'Get record by ID'
+      description: 'Retrieve a specific record by its UUID'
+      operationId: getRecordById
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Record UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: a6ea2ff6-fd0d-4d50-a366-3e2575c022cf
+        -
+          name: fqdn
+          in: query
+          description: 'Whether or not to return domains and record contents as FQDN (with trailing dot).'
+          required: false
+          schema:
+            type: boolean
+            nullable: true
+        -
+          name: expand
+          in: query
+          description: 'Comma-separated list of related resources to include in the response'
+          required: false
+          schema:
+            type: string
+            example: 'type,metadata,zone'
+      responses:
+        '200':
+          description: 'Record retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Record not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Record not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 4cc6def6-c741-4d21-b251-d86893d36b16, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    delete:
+      tags:
+        - Record
+      summary: 'Delete record'
+      description: 'Delete a specific record by its UUID'
+      operationId: deleteRecord
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Record UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: 7f00fb39-1f46-4b08-b22f-39b58a4d48c2
+      responses:
+        '204':
+          description: 'Record deleted successfully'
+        '404':
+          description: 'Record not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Record not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 2c174fd6-ec54-461c-bb66-01e71b768370, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    patch:
+      tags:
+        - Record
+      summary: 'Update record'
+      description: 'Updates an existing record (partial update)'
+      operationId: updateRecord
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Record UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: 6dc62420-a1c3-42fa-96b0-6e7c2d3bd8ae
+        -
+          name: fqdn
+          in: query
+          description: 'Whether or not to return domains and record contents as FQDN (with trailing dot).'
+          required: false
+          schema:
+            type: boolean
+            nullable: true
+      requestBody:
+        description: 'Record data'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  properties: { zoneId: { description: 'Zone uuid', type: string, format: uuid, example: 6e03cdcf-b630-4594-865b-fec180368e14, nullable: true }, typeId: { description: 'Record type uuid', type: string, format: uuid, example: c6b07d99-1273-4503-8118-ec68678b8566, nullable: true }, name: { description: 'Record name', type: string, example: subdomain.example.com., nullable: true }, content: { description: 'Record content', type: string, example: 127.0.0.1, nullable: true }, ttl: { description: 'Record TTL', type: integer, example: 3600, nullable: false }, priority: { description: 'Record priority. Required for MX, SRV and NAPTR types', type: integer, example: 10, nullable: true } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '200':
+          description: 'Record updated successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Record not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Record not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 171379b1-c68d-427b-8c62-1b18027eb308, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'Invalid record payload.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  /api/records/count:
+    get:
+      tags:
+        - Record
+      summary: 'Return record count'
+      description: 'Retrieve the total amount of records, with optional filtering'
+      operationId: getCountRecords
+      parameters:
+        -
+          name: filters
+          in: query
+          description: 'Array of filters to apply. Each filter contains field, operator, and value'
+          required: false
+          style: deepObject
+          explode: true
+          schema:
+            type: array
+            items:
+              required:
+                - field
+                - operator
+                - value
+              properties:
+                field:
+                  description: 'Field name to filter by'
+                  type: string
+                  example: name
+                  nullable: false
+                operator:
+                  description: 'Filter operator'
+                  type: string
+                  enum: ['=', '!=', '>', '<', '>=', '<=', CONTAINS, STARTS_WITH, ENDS_WITH, IN, NOT_IN]
+                  example: CONTAINS
+                value:
+                  description: 'Value to filter by'
+                  type: string
+                  example: example
+                  nullable: false
+              type: object
+      responses:
+        '200':
+          description: 'Returns the amount of records found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/ScalarResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records/count, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  /api/records/import:
+    post:
+      tags:
+        - Record
+      summary: 'Import record'
+      description: 'Imports a record from Panel'
+      operationId: importRecord
+      requestBody:
+        description: 'Record data'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  required: [zoneId, name, content, type, ttl]
+                  properties: { zoneId: { description: 'Zone uuid', type: string, format: uuid, example: ac2a39a7-10c9-4da2-bf94-8cbf56a441ec, nullable: false }, name: { description: 'Full qualitified record name', type: string, example: subdomain.adderglobal.com, nullable: false }, content: { description: 'Record content', type: string, example: 127.0.0.1, nullable: false }, typeName: { description: 'Record type name', type: string, example: A, nullable: false }, ttl: { description: 'Record TTL', type: integer, example: 3600, nullable: false }, priority: { description: 'Record priority (required for MS/SRV types)', type: integer, example: 10, nullable: false } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '201':
+          description: 'Record imported successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The name field is required.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records/import, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/records/import, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  /api/recordDefaults:
+    get:
+      tags:
+        - RecordDefault
+      summary: 'Get all DNS record defaults'
+      description: 'Retrieve a list of DNS record default templates with optional filtering, sorting and pagination'
+      operationId: getAllRecordDefaults
+      parameters:
+        -
+          name: order_by
+          in: query
+          description: 'Field to order by'
+          required: false
+          schema:
+            type: string
+          example: content
+        -
+          name: order
+          in: query
+          description: 'Order direction'
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+          example: asc
+        -
+          name: limit
+          in: query
+          description: 'Number of items per page'
+          required: false
+          schema:
+            type: integer
+            maximum: 1000
+            minimum: 1
+          example: 10
+        -
+          name: offset
+          in: query
+          description: 'Number of items to skip'
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          example: 0
+        -
+          name: filters
+          in: query
+          description: 'Array of filters to apply. Each filter contains field, operator, and value'
+          required: false
+          style: deepObject
+          explode: true
+          schema:
+            type: array
+            items:
+              required:
+                - field
+                - operator
+                - value
+              properties:
+                field:
+                  description: 'Field name to filter by'
+                  type: string
+                  example: name
+                  nullable: false
+                operator:
+                  description: 'Filter operator'
+                  type: string
+                  enum: ['=', '!=', '>', '<', '>=', '<=', CONTAINS, STARTS_WITH, ENDS_WITH, IN, NOT_IN]
+                  example: CONTAINS
+                value:
+                  description: 'Value to filter by'
+                  type: string
+                  example: example
+                  nullable: false
+              type: object
+        -
+          name: page
+          in: query
+          description: 'Page number for pagination'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          example: 2
+      responses:
+        '200':
+          description: 'Record Defaults retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { description: '', type: array, items: { $ref: '#/components/schemas/RecordDefaultResponse' } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false }, records: { properties: { totalItems: { description: 'Total number of items available', type: integer, example: 2, nullable: false }, totalPages: { description: 'Total number of pages available', type: integer, example: 1, nullable: false }, currentPage: { description: 'Current page number', type: integer, example: 1, nullable: false }, perPage: { description: 'Number of items per page', type: integer, example: 20, nullable: false } }, type: object } }, type: object }
+                  links: { properties: { pages: { properties: { first: { description: '', type: string, example: '/api/recordDefaults?limit=10&offset=0', nullable: false }, last: { description: '', type: string, example: '/api/recordDefaults?limit=10&offset=20', nullable: false }, next: { description: '', type: string, example: '/api/recordDefaults?limit=10&offset=10', nullable: true }, prev: { description: '', type: string, example: '', nullable: true } }, type: object } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordDefaults, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    post:
+      tags:
+        - RecordDefault
+      summary: 'Create DNS record default'
+      description: 'Create a new DNS record default template'
+      operationId: createRecordDefault
+      requestBody:
+        description: 'Record Default data'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  properties: { clusterId: { description: 'Cluster UUID', type: string, format: uuid, example: c28ab2fd-5152-4bff-aa50-2c48db855134, nullable: false }, typeId: { description: 'Type UUID', type: string, format: uuid, example: 85af39bd-4887-434d-add1-27521b3a30da, nullable: false }, content: { description: 'content value ', type: string, example: ns1.example.com, nullable: false }, ttl: { description: 'time to live', type: integer, example: 3600, nullable: false } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '201':
+          description: 'Record Default created successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordDefaultResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-08-05T17:48:15Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The clusterId field is required.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordDefaults, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordDefaults, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+  '/api/recordDefaults/{id}':
+    get:
+      tags:
+        - RecordDefault
+      summary: 'Get DNS record default by ID'
+      description: 'Retrieve a specific DNS record default template by its UUID'
+      operationId: getRecordDefaultById
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Record Default UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: 73fc0fc7-4b36-4db8-81e2-dc719f923eb7
+      responses:
+        '200':
+          description: 'Record Default retrieved successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordDefaultResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 13701a95-c86d-4017-8fa9-63a65fbb783b, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-07-29T07:48:15Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Record Default not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD_DEFAULT.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Record Default not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordDefaults/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: b42e56e0-897a-496a-8d12-355061c804d5, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordDefaults/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    delete:
+      tags:
+        - RecordDefault
+      summary: 'Delete DNS record default'
+      description: 'Delete a specific DNS record default template by its UUID'
+      operationId: deleteRecordDefault
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Record Default UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '[0-9a-fA-F\-]{36}'
+          example: c76de8a2-5e2a-42e6-80b3-930459830ed4
+      responses:
+        '204':
+          description: 'Record Default deleted successfully'
+        '404':
+          description: 'Record Default not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD_DEFAULT.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Record Default not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordDefaults/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: bfd8641c-824e-4699-8610-18d6cc498f45, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordDefaults/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+    patch:
+      tags:
+        - RecordDefault
+      summary: 'Update DNS record default'
+      description: 'Update an existing DNS record default template (partial update)'
+      operationId: updateRecordDefault
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Record Default UUID'
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: 73d96b70-53d8-4f1d-ae1f-ad8f3319752d
+      requestBody:
+        description: 'Record Default data to update (partial)'
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  properties: { clusterId: { description: 'Cluster UUID', type: string, format: uuid, example: ed460278-5d32-4a86-9275-f1e41a320dbb, nullable: true }, typeId: { description: 'Type UUID', type: string, format: uuid, example: eef2d96d-ca92-44fd-87ff-2e902f80f1dc, nullable: true }, content: { description: 'Content value', type: string, example: ns2.example.com, nullable: true }, ttl: { description: 'Time to live', type: integer, example: 7200, nullable: true } }
+                  type: object
+                  nullable: false
+              type: object
+      responses:
+        '200':
+          description: 'Record Default updated successfully'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/RecordDefaultResponse' }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: 81bc8dc0-37c1-426a-90af-950d9c989c32, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-08-05T18:32:12Z', nullable: false } }, type: object }
+                type: object
+        '404':
+          description: 'Record Default not found'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: RECORD_DEFAULT.NOT_FOUND, nullable: false }, title: { description: '', type: string, example: 'Record Default not found.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordDefaults/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: e85f87bd-16ac-47fa-ba06-db94be97ecce, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '400':
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: VALIDATION_ERROR, nullable: false }, title: { description: '', type: string, example: 'Validation failed', nullable: false }, detail: { description: '', type: string, example: 'The ttl field must be an integer.', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordDefaults/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: validation-error-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+        '500':
+          description: 'Internal server error'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors: { type: array, items: { properties: { code: { description: '', type: string, example: INTERNAL_ERROR, nullable: false }, title: { description: '', type: string, example: 'Internal server error', nullable: false }, source: { properties: { pointer: { description: '', type: string, example: /api/recordDefaults/00000000-0000-0000-0000-000000000000, nullable: false } }, type: object }, metadata: { properties: { serverName: { description: 'Server name identifier', type: string, example: 4b6d4f849a1a, nullable: false } }, type: object } }, type: object } }
+                  metadata: { properties: { correlationId: { description: 'Correlation ID for request tracking', type: string, example: error-correlation-id, nullable: false }, timestamp: { description: 'Response timestamp', type: string, format: date-time, example: '2025-09-18T15:18:21Z', nullable: false } }, type: object }
+                type: object
+components:
+  schemas:
+    ScalarResponse:
+      description: 'Scalar value Data transfer object'
+      required:
+        - value
+      properties:
+        value:
+          description: ''
+          type: string
+          example: '25'
+      type: object
+    StatusQueryResponse:
+      description: 'Health check status data transfer object'
+      required:
+        - status
+      properties:
+        status:
+          description: ''
+          type: string
+          example: ok
+      type: object
+    RecordsMetadataResponse:
+      description: 'Record metadata collection data transfer object'
+      required:
+        - data
+      type: object
+    RecordMetadataResponse:
+      description: 'Record metadata data transfer object'
+      required:
+        - id
+        - recordId
+        - key
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          title: '{@inheritDoc}'
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: 5046d4b1-0f6e-43ac-90d3-8ab41a79032c
+        recordId:
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: ea1e0101-753f-46eb-9d48-8763228f47be
+        key:
+          description: ''
+          type: string
+          example: metadata_key
+        value:
+          description: ''
+          type: string
+          example: metadata_value
+          nullable: true
+        createdAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+        updatedAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+          nullable: true
+      type: object
+    RecordDefaultsResponse:
+      description: 'RecordDefaults collection data transfer object'
+      required:
+        - RecordDefaults
+      type: object
+    RecordDefaultResponse:
+      description: 'RecordDefault Data transfer object'
+      required:
+        - id
+        - clusterId
+        - typeId
+        - content
+        - ttl
+        - createdAt
+        - updatedAt
+        - type
+      properties:
+        id:
+          title: '{@inheritDoc}'
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: 8b3e22fd-c145-42eb-82d6-1cf5fc2d0223
+        clusterId:
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: dda41d28-9874-420e-8b3b-3eac3051f105
+        typeId:
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: 773faaa5-65f0-4920-af16-817d38e6acb6
+        content:
+          description: ''
+          type: string
+          example: 127.0.0.1
+        ttl:
+          description: ''
+          type: integer
+          example: 3600
+        createdAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+        updatedAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+          nullable: true
+      type: object
+    RecordsResponse:
+      description: 'Record collection data transfer object'
+      required:
+        - data
+      type: object
+    RecordResponse:
+      description: 'Record Data transfer object'
+      required:
+        - id
+        - zoneId
+        - typeId
+        - name
+        - content
+        - ttl
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: d5bdaa43-9743-4a22-a538-a2769f674f42
+        zoneId:
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: 6a498bdf-0340-43c7-a22c-fca83aac7c47
+        typeId:
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: 2ec437a7-5fa2-49a1-8323-f1f94da33976
+        name:
+          description: ''
+          type: string
+          example: test.jotelulu.space
+        content:
+          description: ''
+          type: string
+          example: 127.0.0.1
+        priority:
+          description: 'Record priority. Required for MX, SRV and NAPTR types'
+          type: integer
+          example: 10
+          nullable: true
+        ttl:
+          description: 'Record TTL'
+          type: integer
+          example: 3600
+        createdAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+        updatedAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+          nullable: true
+        type:
+          $ref: '#/components/schemas/RecordTypeResponse'
+        zone:
+          $ref: '#/components/schemas/ZoneResponse'
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordMetadataResponse'
+          default: null
+          nullable: true
+      type: object
+    RecordTypesResponse:
+      description: 'Record Type collection data transfer object'
+      required:
+        - data
+      type: object
+    RecordTypeResponse:
+      description: 'RecordType data transfer object'
+      required:
+        - id
+        - type
+        - available
+        - createdAt
+      properties:
+        id:
+          title: '{@inheritDoc}'
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: 6c4aea75-6a3d-45b1-b4dc-a0b1554b1485
+        type:
+          description: ''
+          type: string
+          example: NS
+        available:
+          description: ''
+          type: boolean
+          example: true
+        createdAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+        updatedAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+          nullable: true
+      type: object
+    ZoneRecordStatusResponse:
+      description: 'Zone record status data transfer object'
+      required:
+        - recordContent
+        - online
+      properties:
+        recordContent:
+          description: 'Record content'
+          type: string
+          example: ns1.jotelulu.com
+        online:
+          description: 'Whether the record is online or not'
+          type: boolean
+          example: true
+      type: object
+    ZoneStatusResponse:
+      description: 'Zone status data transfer object'
+      required:
+        - records
+        - totalOnline
+        - totalOffline
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZoneRecordStatusResponse'
+        totalOnline:
+          description: 'Total number of online records'
+          type: integer
+          example: 3
+        totalOffline:
+          description: 'Total number of offline records'
+          type: integer
+          example: 1
+      type: object
+    ZonesResponse:
+      description: 'Zones collection data transfer object'
+      required:
+        - data
+      properties:
+        data:
+          title: '{@inheritDoc}'
+          description: ''
+          type: array
+          items:
+            $ref: '#/components/schemas/ZoneResponse'
+      type: object
+    ZoneResponse:
+      description: 'Zone data transfer object'
+      required:
+        - id
+        - clusterId
+        - name
+        - serial
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          title: '{@inheritDoc}'
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: 700ff112-eac6-4cde-8fe2-e7ae2503e063
+        clusterId:
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: 5ea36d1e-361b-443b-9669-52ee6ba8eabd
+        name:
+          description: ''
+          type: string
+          example: example.com
+        externalId:
+          description: ''
+          type: string
+          example: example.com
+          nullable: true
+        serial:
+          description: ''
+          type: integer
+          example: 2023010101
+          nullable: true
+        createdAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+        updatedAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+          nullable: true
+        recordCount:
+          description: 'Number of records in this zone (only populated when expand=record.count)'
+          type: integer
+          example: 5
+          nullable: true
+      type: object
+    ClustersResponse:
+      description: 'Clusters collection data transfer object'
+      required:
+        - clusters
+      type: object
+    ClusterResponse:
+      description: 'Cluster data transfer object'
+      required:
+        - id
+        - name
+        - provider
+        - createdAt
+      properties:
+        id:
+          title: '{@inheritDoc}'
+          description: 'Type UUID'
+          type: string
+          format: uuid
+          example: 8d5b325b-6f02-4563-a777-2b8e9d0dc2a0
+        name:
+          description: ''
+          type: string
+          example: cluster-01
+        provider:
+          description: ''
+          type: string
+          example: aws
+        createdAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+        updatedAt:
+          description: ''
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00+00:00'
+          nullable: true
+      type: object
+tags:
+  -
+    name: RecordMetadata
+    description: 'DNS Record Metadata management operations'
+  -
+    name: 'Health Check'
+    description: 'Application health monitoring'
+  -
+    name: Clusters
+    description: 'Cluster management operations'
+  -
+    name: Zones
+    description: 'Zone management operations'
+  -
+    name: RecordType
+    description: 'RecordType management operations'
+  -
+    name: Record
+    description: 'Record management operations'
+  -
+    name: RecordDefault
+    description: 'DNS Record Default management operations'
+
