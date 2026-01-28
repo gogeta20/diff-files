@@ -50,6 +50,7 @@ make help
 |---------|-------------|
 | `make release-info` | Mostrar información del próximo release |
 | `make release-prepare` | Calcular tag y generar archivos de release |
+| `make release-apply` | **Copiar archivos generados al SDK repo** |
 
 ### Utilidades
 
@@ -138,28 +139,47 @@ Archivos generados:
 - `tag-message.txt` → Usar con `git tag -a -F`
 - `gitlab-release.md` → Copiar a GitLab Release
 
-### Paso 3: Aplicar cambios al SDK
+### Paso 3: Aplicar cambios al SDK (AUTOMATIZADO)
 
 ```bash
-# Copiar archivos al SDK
-cp releases/v1.3.0/generated/CHANGELOG.md ~/projects/jotelulu/php-bundle-client-hal-dns/
-cp releases/v1.3.0/generated/README.md ~/projects/jotelulu/php-bundle-client-hal-dns/
+# Copiar archivos al SDK automáticamente
+make release-apply
+```
 
+**Output:**
+```
+═══════════════════════════════════════════════
+   Aplicando Release al SDK
+═══════════════════════════════════════════════
+
+Tag detectado: 1.3.0
+✓ CHANGELOG.md → SDK
+✓ README.md → SDK
+✓ openapi.yaml → SDK
+```
+
+### Paso 4: Crear commit y tag en SDK
+
+```bash
 # Ir al SDK repo
 cd ~/projects/jotelulu/php-bundle-client-hal-dns
 
-# Commit
+# Ver cambios
+git status
+git diff CHANGELOG.md README.md
+
+# Crear commit (usa el mensaje generado)
 git add CHANGELOG.md README.md sdk-generator/openapi.yaml
 git commit -F ~/projects/personal/diff-files/releases/v1.3.0/generated/commit-message.txt
 
-# Crear tag
+# Crear tag (usa el mensaje generado)
 git tag -a 1.3.0 -F ~/projects/personal/diff-files/releases/v1.3.0/generated/tag-message.txt
 
-# Push
+# Push tag
 git push origin 1.3.0
 ```
 
-### Paso 4: Crear GitLab Release
+### Paso 5: Crear GitLab Release
 
 1. Ve a GitLab: https://gitlab.jotelulu.com/jotelulu/php-bundle-client-hal-dns/-/releases/new
 2. Selecciona el tag: `1.3.0`
@@ -270,8 +290,14 @@ docker exec php-hal-dns-php-1 php bin/console nelmio:apidoc:dump --format=yaml >
 cd ~/projects/personal/diff-files
 make release-full
 
-# Revisas los cambios
-# Si son MINOR/PATCH → aplicas al SDK
+# Aplicas al SDK (copia archivos automáticamente)
+make release-apply
+
+# Revisas los cambios en el SDK
+cd ~/projects/jotelulu/php-bundle-client-hal-dns
+git diff CHANGELOG.md README.md
+
+# Si son MINOR/PATCH → creas commit y tag
 # Si son MAJOR → revisas con el equipo primero
 ```
 
@@ -395,11 +421,13 @@ Este proyecto automatiza el proceso completo de:
 2. ✅ Detectar breaking changes automáticamente
 3. ✅ Calcular el siguiente tag semántico
 4. ✅ Generar todos los archivos necesarios para el release
-5. ✅ Mantener historial de releases documentado
+5. ✅ Copiar archivos al SDK automáticamente
+6. ✅ Mantener historial de releases documentado
 
-**Comando único para todo:**
+**Comandos principales:**
 ```bash
-make release-full
+make release-full    # Generar todo (diff + tag + archivos)
+make release-apply   # Copiar archivos al SDK
 ```
 
 ---

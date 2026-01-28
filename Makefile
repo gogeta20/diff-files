@@ -48,6 +48,7 @@ help:
 	@echo "  $(YELLOW)make release-notes$(NC)      - Generar RELEASE-NOTES.md desde diff results"
 	@echo "  $(YELLOW)make release-prepare$(NC)    - Calcular tag y generar archivos de release"
 	@echo "  $(YELLOW)make release-info$(NC)       - Mostrar info del próximo release"
+	@echo "  $(YELLOW)make release-apply$(NC)      - Copiar archivos generados al SDK repo"
 	@echo "  $(YELLOW)make release-full$(NC)       - Flujo completo: diff + init + notes + prepare"
 	@echo ""
 	@echo "$(CYAN)🔧 Utility Commands:$(NC)"
@@ -295,6 +296,103 @@ release-prepare:
 .PHONY: release-info
 release-info:
 	@python3 get-next-tag.py
+
+.PHONY: release-apply
+release-apply:
+	@echo "$(MAGENTA)═══════════════════════════════════════════════$(NC)"
+	@echo "$(MAGENTA)   Aplicando Release al SDK$(NC)"
+	@echo "$(MAGENTA)═══════════════════════════════════════════════$(NC)"
+	@echo ""
+	@# Get next tag
+	@NEXT_TAG=$$(python3 get-next-tag.py 2>/dev/null | grep "✨ Next tag:" | awk '{print $$4}'); \
+	if [ -z "$$NEXT_TAG" ]; then \
+		echo "$(RED)Error: No se pudo calcular el siguiente tag$(NC)"; \
+		echo "$(YELLOW)Ejecuta 'make release-full' primero$(NC)"; \
+		exit 1; \
+	fi; \
+	RELEASE_DIR=$(RELEASES_DIR)/v$$NEXT_TAG/generated; \
+	echo "$(CYAN)Tag detectado: $(YELLOW)$$NEXT_TAG$(NC)"; \
+	echo "$(CYAN)Release dir: $(YELLOW)$$RELEASE_DIR$(NC)"; \
+	echo ""; \
+	if [ ! -d "$$RELEASE_DIR" ]; then \
+		echo "$(RED)Error: Release directory not found: $$RELEASE_DIR$(NC)"; \
+		echo "$(YELLOW)Ejecuta 'make release-prepare' primero$(NC)"; \
+		exit 1; \
+	fi; \
+	echo "$(CYAN)Verificando archivos...$(NC)"; \
+	MISSING=0; \
+	if [ ! -f "$$RELEASE_DIR/CHANGELOG.md" ]; then \
+		echo "$(RED)  ✗ CHANGELOG.md no encontrado$(NC)"; \
+		MISSING=1; \
+	else \
+		echo "$(GREEN)  ✓ CHANGELOG.md$(NC)"; \
+	fi; \
+	if [ ! -f "$$RELEASE_DIR/README.md" ]; then \
+		echo "$(RED)  ✗ README.md no encontrado$(NC)"; \
+		MISSING=1; \
+	else \
+		echo "$(GREEN)  ✓ README.md$(NC)"; \
+	fi; \
+	if [ ! -f "$$RELEASE_DIR/commit-message.txt" ]; then \
+		echo "$(YELLOW)  ⚠ commit-message.txt no encontrado$(NC)"; \
+	else \
+		echo "$(GREEN)  ✓ commit-message.txt$(NC)"; \
+	fi; \
+	if [ ! -f "$$RELEASE_DIR/tag-message.txt" ]; then \
+		echo "$(YELLOW)  ⚠ tag-message.txt no encontrado$(NC)"; \
+	else \
+		echo "$(GREEN)  ✓ tag-message.txt$(NC)"; \
+	fi; \
+	echo ""; \
+	if [ $$MISSING -eq 1 ]; then \
+		echo "$(RED)Error: Faltan archivos requeridos$(NC)"; \
+		exit 1; \
+	fi; \
+	echo "$(CYAN)Verificando SDK repo...$(NC)"; \
+	if [ ! -d "$(SDK_PATH)" ]; then \
+		echo "$(RED)Error: SDK repo no encontrado: $(SDK_PATH)$(NC)"; \
+		exit 1; \
+	fi; \
+	SDK_BRANCH=$$(cd $(SDK_PATH) && git branch --show-current); \
+	echo "$(GREEN)  ✓ SDK repo encontrado$(NC)"; \
+	echo "$(CYAN)  Branch actual: $(YELLOW)$$SDK_BRANCH$(NC)"; \
+	echo ""; \
+	echo "$(YELLOW)Copiando archivos al SDK...$(NC)"; \
+	cp $$RELEASE_DIR/CHANGELOG.md $(SDK_PATH)/; \
+	echo "$(GREEN)  ✓ CHANGELOG.md → $(SDK_PATH)/CHANGELOG.md$(NC)"; \
+	cp $$RELEASE_DIR/README.md $(SDK_PATH)/; \
+	echo "$(GREEN)  ✓ README.md → $(SDK_PATH)/README.md$(NC)"; \
+	if [ -f "$(OPENAPI_NEW)" ]; then \
+		cp $(OPENAPI_NEW) $(SDK_PATH)/sdk-generator/openapi.yaml; \
+		echo "$(GREEN)  ✓ openapi.yaml → $(SDK_PATH)/sdk-generator/openapi.yaml$(NC)"; \
+	else \
+		echo "$(YELLOW)  ⚠ openapi.yaml no encontrado, no copiado$(NC)"; \
+	fi; \
+	echo ""; \
+	echo "$(MAGENTA)═══════════════════════════════════════════════$(NC)"; \
+	echo "$(GREEN)✓ Archivos copiados al SDK!$(NC)"; \
+	echo "$(MAGENTA)═══════════════════════════════════════════════$(NC)"; \
+	echo ""; \
+	echo "$(YELLOW)Siguientes pasos:$(NC)"; \
+	echo ""; \
+	echo "  $(CYAN)1. Ver cambios:$(NC)"; \
+	echo "     cd $(SDK_PATH)"; \
+	echo "     git status"; \
+	echo "     git diff CHANGELOG.md README.md"; \
+	echo ""; \
+	echo "  $(CYAN)2. Crear commit:$(NC)"; \
+	echo "     git add CHANGELOG.md README.md sdk-generator/openapi.yaml"; \
+	echo "     git commit -F $$RELEASE_DIR/commit-message.txt"; \
+	echo ""; \
+	echo "  $(CYAN)3. Crear tag:$(NC)"; \
+	echo "     git tag -a $$NEXT_TAG -F $$RELEASE_DIR/tag-message.txt"; \
+	echo ""; \
+	echo "  $(CYAN)4. Push tag:$(NC)"; \
+	echo "     git push origin $$NEXT_TAG"; \
+	echo ""; \
+	echo "  $(CYAN)5. GitLab Release:$(NC)"; \
+	echo "     cat $$RELEASE_DIR/gitlab-release.md"; \
+	echo ""
 
 .PHONY: release-full
 release-full:
