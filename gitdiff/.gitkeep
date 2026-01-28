@@ -1,0 +1,5 @@
+# Git Diff Reports
+
+This directory stores git diff reports in markdown format for OpenAPI comparisons.
+
+Files are named: YYYY-MM-DD-branch-name-gitdiff.md

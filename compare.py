@@ -90,17 +90,17 @@ def compare_paths(old, new):
 
     added, removed, common = dict_diff_keys(old_paths, new_paths)
 
-    out("### Added")
+    out("### 🟢 Added")
     for p in added:
         out(f"[green]+ {p}")
         changes["minor"] += 1
 
-    out("\n### Removed")
+    out("\n### 🔴 Removed")
     for p in removed:
         out(f"[red]- {p}")
         changes["major"] += 1
 
-    out("\n### Modified")
+    out("\n### 🟡 Modified")
     for p in common:
         if old_paths[p] != new_paths[p]:
             out(f"[yellow]* {p}")
@@ -119,17 +119,17 @@ def compare_schemas(old, new):
 
     added, removed, common = dict_diff_keys(old_components, new_components)
 
-    out("### Added")
+    out("### 🟢 Added")
     for s in added:
         out(f"[green]+ {s}")
         changes["minor"] += 1
 
-    out("\n### Removed")
+    out("\n### 🔴 Removed")
     for s in removed:
         out(f"[red]- {s}")
         changes["major"] += 1
 
-    out("\n### Modified")
+    out("\n### 🟡 Modified")
     for s in common:
         if old_components[s] != new_components[s]:
             out(f"[yellow]* {s}[/yellow]")
@@ -252,7 +252,17 @@ def main():
 
     bump = determine_version_bump(changes)
     out("\n")
-    out(f"## Suggested version bump: **{bump.upper()}**")
+
+    # Add emoji based on bump type
+    emoji = ""
+    if bump == "major":
+        emoji = "🔴"
+    elif bump == "minor":
+        emoji = "🟡"
+    else:
+        emoji = "✅"
+
+    out(f"## {emoji} Suggested version bump: **{bump.upper()}**")
 
 
 if __name__ == "__main__":
